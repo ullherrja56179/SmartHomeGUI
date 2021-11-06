@@ -1,26 +1,24 @@
-import org.eclipse.paho.client.mqttv3.MqttClient
+import util.Util
 
 fun main() {
-    val topic = "zigbee2mqtt/bridge/devices"
-    val brokerAddr = "tcp://localhost:1592"
-    var client: MqttClient? = null
-    val knownDevices: MutableMap<String, Device> = mutableMapOf()
+    val listener: DeviceListener = DeviceListener()
 
-    client = MqttClient(brokerAddr, "ClientTestId")
-    client.connect()
-    val listener = DeviceListener(knownDevices)
-    client.subscribe(topic, listener)
-    println("Set up client for adding devices: Doing stuff now...")
+    while (true)
+    {
+        val command = readLine()?.split(" ")
+        when (command?.get(0)?.lowercase())
+        {
+            "addnew" -> listener.startListeningForNewDevices()
+            "getdevices" -> println(Util.knownDevices)
+            "set" -> {
+                val deviceName = command[1]
+                val key = command[2]
+                val value = command[3]
+                Util.knownDevices[deviceName]?.handleSet(key, value) ?: continue
+            }
+            else -> break
+        }
+    }
 
-    Thread.sleep(10000)
-    knownDevices["0x0c4314fffe11ff41"]?.handleSet("state", "off")
-    Thread.sleep(10000)
-    knownDevices["0x0c4314fffe11ff41"]?.handleSet("state", "on")
-    Thread.sleep(10000)
-    knownDevices["0x0c4314fffe11ff41"]?.handleSet("brightness", "250")
-    Thread.sleep(10000)
-    knownDevices["0x0c4314fffe11ff41"]?.handleSet("brightness", "80")
-    Thread.sleep(10000)
-    knownDevices["0x0c4314fffe11ff41"]?.handleSet("color_temp", "warmest")
-    client.disconnect()
+
 }
