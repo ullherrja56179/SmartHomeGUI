@@ -5,10 +5,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import expose.BinaryExpose
-import expose.EnumExpose
 import expose.ExposeObject
-import expose.NumericExpose
 
 class Util {
     companion object {
@@ -69,49 +66,13 @@ class Util {
                     continue
                 }
 
-                when (current.get("type").asString)
-                {
-                    "binary" -> add(
-                        BinaryExpose(
-                            current.get("name").asString,
-                            current.get("description").asString,
-                            createPresets(current.get("presets").asJsonArray),
-                            current.get("value_on").asString,
-                            current.get("value_off").asString
-                        )
-                    )
-                    "numeric" -> add(
-                        NumericExpose(
-                            current.get("name").asString,
-                            current.get("description").asString,
-                            createPresets(current.get("presets")?.asJsonArray),
-                            current.get("value_min").asInt,
-                            current.get("value_max").asInt
-                        )
-                    )
-                    "enum" -> add (
-                        EnumExpose(
-                            "name",
-                            "description",
-                            mutableListOf("1","2"),
-                            mutableListOf("1","2")
-                        )
-                    )
-                    else -> continue
-                }
+                ExposeObjectFactory.createExposeObjectFromJson(current)?.let { add(it) }
             }
         }
 
-        fun createPresets(presets: JsonArray?): MutableList<String>
+        private fun MutableList<ExposeObject>.addExposesFromFeatures(featuresSection: JsonArray)
         {
-            val list = mutableListOf<String>()
-            presets?.forEach { list.add(it.asJsonObject.get("name").asString) }
-            return list
-        }
-
-        fun MutableList<ExposeObject>.addExposesFromFeatures(featuresSection: JsonArray?)
-        {
-            featuresSection?.onEach { it ->
+            featuresSection.onEach { it ->
                 val foundPresets = mutableListOf<String>()
                 val current = it.asJsonObject
                 val name = current.get("name").asString
@@ -121,65 +82,8 @@ class Util {
                     foundPresets.add(it.asJsonObject.get("name").asString)
                 }
 
-                when (current.get("type").asString) {
-                    "binary" -> add(
-                        BinaryExpose(
-                            name,
-                            description,
-                            foundPresets,
-                            current.get("value_on").asString,
-                            current.get("value_off").asString
-                        )
-                    )
-                    "numeric" -> add(
-                        NumericExpose(
-                            name,
-                            description,
-                            foundPresets,
-                            current.get("value_min").asInt,
-                            current.get("value_max").asInt
-                        )
-                    )
-                    else -> println("Unkown Expose-Type")
-                }
+                ExposeObjectFactory.createExposeObjectFromJson(current)?.let { it1 -> add(it1) }
             }
-        }
-
-        private fun constructExposeOptionsFromFeatures(featuresSection: JsonArray?) : List<ExposeObject>{
-            val exposes = mutableListOf<ExposeObject>()
-            featuresSection?.onEach { it ->
-                val foundPresets = mutableListOf<String>()
-                val current = it.asJsonObject
-                val name = current.get("name").asString
-                val description = current.get("description").asString
-
-                current.get("presets")?.asJsonArray?.forEach {
-                    foundPresets.add(it.asJsonObject.get("name").asString)
-                }
-
-                when (current.get("type").asString) {
-                    "binary" -> exposes.add(
-                        BinaryExpose(
-                        name,
-                        description,
-                        foundPresets,
-                        current.get("value_on").asString,
-                        current.get("value_off").asString
-                    )
-                    )
-                    "numeric" -> exposes.add(
-                        NumericExpose(
-                        name,
-                        description,
-                        foundPresets,
-                        current.get("value_min").asInt,
-                        current.get("value_max").asInt
-                    )
-                    )
-                    else -> println("Unkown Expose-Type")
-                }
-            }
-            return exposes
         }
     }
 }
