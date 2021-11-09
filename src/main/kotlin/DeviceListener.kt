@@ -13,6 +13,7 @@ class DeviceListener() : IMqttMessageListener {
     fun startListeningForNewDevices() {
         client = MqttClient(Util.mqttBrokerUrl, clientId)
         client.connect()
+        client.publish("zigbee2mqtt/bridge/request/permit_join", MqttMessage("{\"value\": true}, \"time\": 5}".toByteArray()))
         if (client.isConnected) waitForDevicesMessage(client, 5000)
     }
 
@@ -52,6 +53,7 @@ class DeviceListener() : IMqttMessageListener {
                     name = readLine()!!
                 }
                 Util.knownDevices[name] = device
+                device.setName(name)
                 println("Added Device with name=$name")
             }
         }
