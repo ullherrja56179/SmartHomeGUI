@@ -15,6 +15,7 @@ data class Device(private val manufacturer: String, private val type: String, pr
         get() {
             return "zigbee2mqtt/$friendlyName/get"
         }
+    private lateinit var name: String
 
     private val UID = UUID.randomUUID().toString()
 
@@ -24,7 +25,13 @@ data class Device(private val manufacturer: String, private val type: String, pr
 
     fun handleSet(key: String, value: String): Boolean
     {
-        if (!checkValidityOfInput(key, value))
+        println("Handling set now...")
+        val exposeObject = getExposeForKey(key)
+        if (exposeObject == null || !exposeObject.canBeGet()) {
+            println("key=$key cannot be set!")
+            return false
+        }
+        if (!checkValidityOfInput(exposeObject, value))
         {
             println("Input is wrong: key=$key, value=$value")
             return false
@@ -43,19 +50,31 @@ data class Device(private val manufacturer: String, private val type: String, pr
         return true
     }
 
-    private fun checkValidityOfInput(key: String, value: String): Boolean {
-        println(exposes.firstOrNull { it.name == key })
-        return when (val expose: ExposeObject? = exposes.firstOrNull { it.name == key }) {
+    private fun getExposeForKey(key: String): ExposeObject?
+    {
+        return exposes.firstOrNull { it.name == key }
+    }
+
+    private fun checkValidityOfInput(exposeObject: ExposeObject?, value: String): Boolean {
+        return when (exposeObject) {
             null -> false
-            is BinaryExpose -> return expose.validateValue(value)
-            is NumericExpose -> return expose.validateValue(value)
-            else -> false
+            else -> return exposeObject.validateValue(value)
         }
     }
 
     fun getFriendlyName() : String
     {
         return friendlyName
+    }
+
+    fun setName(name: String)
+    {
+        this.name = name
+    }
+
+    fun getName(): String
+    {
+        return name ?: "unknown"
     }
 
 }
