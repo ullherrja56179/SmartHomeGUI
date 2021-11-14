@@ -1,4 +1,4 @@
-package expose
+package com.example.smarthome.expose
 
 data class BinaryExpose (override val name: String,
                          override val description: String,

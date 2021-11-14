@@ -1,8 +1,10 @@
+package com.example.smarthome
+
+import com.example.smarthome.expose.BinaryExpose
+import com.example.smarthome.expose.EnumExpose
+import com.example.smarthome.expose.ExposeObject
+import com.example.smarthome.expose.NumericExpose
 import com.google.gson.JsonObject
-import expose.BinaryExpose
-import expose.EnumExpose
-import expose.ExposeObject
-import expose.NumericExpose
 
 class ExposeObjectFactory {
     companion object {

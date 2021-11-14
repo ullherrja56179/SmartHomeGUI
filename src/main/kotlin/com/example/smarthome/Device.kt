@@ -1,6 +1,8 @@
-import expose.BinaryExpose
-import expose.ExposeObject
-import expose.NumericExpose
+package com.example.smarthome
+
+import com.example.smarthome.expose.BinaryExpose
+import com.example.smarthome.expose.ExposeObject
+import com.example.smarthome.expose.NumericExpose
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import java.util.*
@@ -15,7 +17,7 @@ data class Device(private val manufacturer: String, private val type: String, pr
         get() {
             return "zigbee2mqtt/$friendlyName/get"
         }
-    private lateinit var name: String
+    private var name: String? = null
 
     private val UID = UUID.randomUUID().toString()
 
@@ -55,6 +57,11 @@ data class Device(private val manufacturer: String, private val type: String, pr
         return exposes.firstOrNull { it.name == key }
     }
 
+    fun getSettableExposes(): List<ExposeObject>
+    {
+        return exposes.filter { it.isSet }
+    }
+
     private fun checkValidityOfInput(exposeObject: ExposeObject?, value: String): Boolean {
         return when (exposeObject) {
             null -> false
@@ -67,14 +74,18 @@ data class Device(private val manufacturer: String, private val type: String, pr
         return friendlyName
     }
 
-    fun setName(name: String)
-    {
+    fun setName(name: String) {
         this.name = name
     }
 
-    fun getName(): String
+    fun getName(): String?
     {
-        return name ?: "unknown"
+        return name
+    }
+
+    fun getDescription(): String
+    {
+        return description
     }
 
 }

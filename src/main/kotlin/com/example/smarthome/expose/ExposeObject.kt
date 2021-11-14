@@ -1,4 +1,4 @@
-package expose
+package com.example.smarthome.expose
 
 interface ExposeObject {
     val name: String

@@ -1,15 +1,16 @@
-package util
+package com.example.smarthome.util
 
-import Device
+import com.example.smarthome.Device
+import com.example.smarthome.ExposeObjectFactory
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import expose.ExposeObject
+import com.example.smarthome.expose.ExposeObject
 
 class Util {
     companion object {
-        val knownDevices: MutableMap<String, Device> = mutableMapOf()
+        val knownDevices = mutableListOf<Device>()
         const val mqttBrokerUrl = "tcp://localhost:1592"
         const val zigbeeDevicesTopic = "zigbee2mqtt/bridge/devices"
 
@@ -28,8 +29,7 @@ class Util {
 
                 if (deviceIsSupported(currentJson)) {
                     val friendlyName = getStringFromJson(currentJson, "friendly_name") ?: break
-                    val isKnownDevice =
-                        knownDevices.values.firstOrNull { device -> device.getFriendlyName().equals(friendlyName) }
+                    val isKnownDevice = knownDevices.firstOrNull { device -> device.getFriendlyName() == friendlyName }
                     if (isKnownDevice != null) break
                     val manufacturer = getStringFromJson(currentJson, "manufacturer") ?: "unknown"
                     val deviceDefinition = currentJson.get("definition")
@@ -66,7 +66,7 @@ class Util {
                     continue
                 }
 
-                ExposeObjectFactory.createExposeObjectFromJson(current)?.let { add(it) }
+                ExposeObjectFactory.createExposeObjectFromJson(current)?.let { it -> add(it) }
             }
         }
 
