@@ -49,12 +49,6 @@ class ExposeObjectFactory {
             return access == 2 || access == 3 || access == 6 || access == 7
         }
 
-        private fun getIsFoundInPublish(json: JsonObject): Boolean
-        {
-            val access = json.get("access").asInt
-            return access == 1 || access == 3 || access == 7
-        }
-
         private fun getIsGet(json: JsonObject): Boolean
         {
             val access = json.get("access").asInt

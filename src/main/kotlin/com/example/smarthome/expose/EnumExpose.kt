@@ -3,7 +3,7 @@ package com.example.smarthome.expose
 data class EnumExpose(override val name: String,
                       override val description: String,
                       override val presets: List<String>,
-                      private val values: List<String>,
+                      val values: List<String>,
                       override val isSet: Boolean,
                       override val isGet: Boolean) : ExposeObject
 {

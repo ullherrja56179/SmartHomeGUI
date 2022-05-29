@@ -1,6 +1,7 @@
 package com.example.smarthome
 
 import com.example.smarthome.expose.BinaryExpose
+import com.example.smarthome.expose.EnumExpose
 import com.example.smarthome.expose.ExposeObject
 import com.example.smarthome.expose.NumericExpose
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -8,6 +9,9 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 import java.util.*
 
 data class Device(private val manufacturer: String, private val type: String, private val vendor: String, private val description: String, private val friendlyName: String, private val exposes: List<ExposeObject>) {
+
+    val enumExposes: List<EnumExpose>
+        get() = exposes.filter { it is EnumExpose }.map { it as EnumExpose }
 
     private val setTopic: String
         get() {
@@ -29,7 +33,8 @@ data class Device(private val manufacturer: String, private val type: String, pr
     {
         println("Handling set now...")
         val exposeObject = getExposeForKey(key)
-        if (exposeObject == null || !exposeObject.canBeGet()) {
+        println("GOT EXPOSE: $exposeObject")
+        if (exposeObject == null || !exposeObject.canBeSet()) {
             println("key=$key cannot be set!")
             return false
         }

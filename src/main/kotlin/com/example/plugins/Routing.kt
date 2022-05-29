@@ -4,6 +4,7 @@ import com.example.smarthome.Device
 import com.example.smarthome.DeviceListener
 import com.example.smarthome.expose.BinaryExpose
 import com.example.smarthome.expose.EnumExpose
+import com.example.smarthome.expose.ExposeObject
 import com.example.smarthome.expose.NumericExpose
 import com.example.smarthome.util.Util
 import io.ktor.routing.*
@@ -12,7 +13,6 @@ import io.ktor.application.*
 import io.ktor.html.*
 import io.ktor.request.*
 import io.ktor.response.*
-import io.ktor.util.*
 import kotlinx.html.*
 
 fun Application.configureRouting() {
@@ -30,46 +30,115 @@ fun Application.configureRouting() {
         }
     }
 
+    fun DIV.addButtonsFromList(
+        device: Device,
+        expose: ExposeObject,
+        presets: List<String>
+    ) {
+        if (presets.isNotEmpty()) {
+            postForm("/devices/${device.getName() ?: device.getFriendlyName()}/set/key") {
+                div {
+                    p {
+                        presets.forEach {
+                            postButton(name = expose.name, classes = "btn btn-success") {
+                                value = it
+                                text(it.uppercase())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun DIV.createStuffForNumericExpose(device: Device, expose: NumericExpose) {
+        postForm("/devices/${device.getName() ?: device.getFriendlyName()}/set/key") {
+            div(classes = "slidecontainer") {
+                style = "width:100%"
+                p { text(expose.description) }
+                p { +"Current Value: ${expose.currentValue}" }
+                input(type = InputType.range, classes = "slider", name = expose.name)
+                {
+                    min = "${expose.value_min+1}"
+                    value = expose.currentValue
+                    max = "${expose.value_max-1}"
+                }
+                submitInput()
+            }
+        }
+    }
+
+    fun DIV.createStuffForEnumExpose(device: Device, expose: EnumExpose)
+    {
+        addButtonsFromList(device, expose, expose.values)
+    }
+
+    fun DIV.addRenameOption(device: Device) {
+        postForm(
+            classes = "form-floating",
+            action = "/devices/${device.getName() ?: device.getFriendlyName()}/set/name"
+        )
+        {
+            div(classes = "input-group, row mb-3") {
+                span(classes = "input-group-text, col-sm-10, text-warning bg-dark") { text("Rename Device") }
+                textInput(name = "name")
+                submitInput()
+            }
+        }
+    }
+
     fun DIV.displayDevices() {
         val devices = Util.knownDevices
         devices.forEach { device ->
-            val exposes = device.getSettableExposes()
-
-            if (exposes.isNotEmpty()) {
-                h1 { +(device.getName() ?: device.getFriendlyName()) }
+            val settableExposes = device.getSettableExposes()
+            if (settableExposes.isNotEmpty()) {
+                h1 {
+                    style = """
+                        font-style: italic;
+                        font-weight: bolder;
+                        color: #5d8ba8;
+                    """.trimIndent()
+                    +(device.getName() ?: device.getFriendlyName())
+                }
                 h3(classes = "text-uppercase, fw-lighter") { +device.getDescription() }
                 div()
                 {
-                    exposes.forEach { exposeObject ->
+                    settableExposes.forEach { exposeObject ->
+                        h2() {
+                            style = """
+                               font-style: italic;
+                               font-weight lighter;
+                               color: #bd7126;
+                            """
+                            text(exposeObject.name.uppercase())
+                        }
                         when (exposeObject) {
                             is BinaryExpose -> {
                                 createButtonsForBinaryExpose(device)
                             }
                             is NumericExpose -> {
-                            }
-                            is EnumExpose -> {
+                                createStuffForNumericExpose(device, exposeObject)
+                                if (exposeObject.presets.isNotEmpty()) {
+                                    h4 {
+                                        style = """
+                                            font-weight: lither;
+                                            font-style: fantasy;
+                                            color: #bd7126;
+                                        """.trimIndent()
+                                        text("Preset values:")
+                                    }
+                                    addButtonsFromList(device, exposeObject, exposeObject.presets)
+                                }
                             }
                         }
+                        br()
                     }
                 }
-
-                postForm(classes = "form-floating", action = "/devices/${device.getName() ?: device.getFriendlyName()}/set/name")
-                {
-                    div(classes = "input-group, row mb-3") {
-                        span(classes = "input-group-text, col-sm-10, text-warning bg-dark") { text("Rename Device") }
-                        textInput(name = "name")
-                        submitInput()
-                    }
+                device.enumExposes.forEach {
+                    createStuffForEnumExpose(device, it)
                 }
-                postForm("/devices/${device.getName() ?: device.getFriendlyName()}/set/key") {
-                    div(classes = "input-group, row mb-3") {
-                        span(classes = "input-group-text, col-sm-10, text-warning bg-dark") { text("Key and Value") }
-                        textInput(name = "key")
-                        textInput(name = "value")
-                        submitInput()
-                    }
-                }
-
+                addRenameOption(device)
+                br()
             }
         }
     }
@@ -86,8 +155,11 @@ fun Application.configureRouting() {
                 }
 
                 body {
+                    style = """
+                        background-color: #43574f;
+                    """.trimIndent()
                     div("container-fluid") {
-                        div("row, p-3 mb-2 bg-secondary text-white") {
+                        div("row, p-3 mb-2") {
                             if (Util.knownDevices.isEmpty()) {
                                 h1 { +"There are no devices just yet..." }
                             } else {
@@ -143,24 +215,21 @@ fun Application.configureRouting() {
             post("/*")
             {
                 val devicename = call.parameters["Oldname"]
-                val setKey = call.parameters["key"]
                 val params = call.receiveParameters()
-                println("GOT: params=$params and name=$devicename")
-                val key: String
-                val value: String
-                if (setKey == "name") {
-
+                val device = Util.knownDevices.firstOrNull { it.getFriendlyName() == devicename || it.getName() == devicename }
+                device?.getSettableExposes()?.forEach {
+                    val key = it.name
+                    val value = params[key]
+                    value?.let {it2 ->
+                        println("GOT EXPOSE WITH NAME: $key and VALUE IS $value")
+                        when
+                        {
+                            (it is NumericExpose) -> it.currentValue = value
+                        }
+                        device.handleSet(it.name, value)
+                        call.respondRedirect("/")
+                    }
                 }
-                if (params["state"] != null) {
-                    key = "state"
-                    value = params["state"].toString()
-                } else {
-                    key = params["key"]!!
-                    value = params["value"]!!
-                }
-                Util.knownDevices.firstOrNull { it.getFriendlyName() == devicename || it.getName() == devicename }
-                    ?.handleSet(key, value)
-                call.respondRedirect("/")
             }
         }
         // Static plugin. Try to access `/static/index.html`
